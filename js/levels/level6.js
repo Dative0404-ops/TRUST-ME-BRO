@@ -34,9 +34,14 @@
      cols 0-37    Fake doors at 8, 17, 26, 33.
      cols 38-40   A small gap. Jump it.
      cols 41-77   Fake doors at 46, 55, 64, 72.
-     cols 78-83   A LAVA pit, crossed only by a sliding platform.
-     cols 84-119  Fake doors at 88, 97, 106, 112, then at col 116 the
+     cols 78-87   A WIDE lava pit - far too wide to jump - crossed only by a
+                  sliding platform. Fall in and you burn.
+     cols 88-119  Fake doors at 93, 99, 106, 112, then at col 116 the
                   spike "pit" that is really the exit.
+
+   ON TOP OF ALL THAT, the loose spikes scattered along the floor are
+   re-rolled every single run (see randomSpikes below), so no two attempts
+   are ever quite the same.
    ========================================================================= */
 
 TN.Levels = TN.Levels || {};
@@ -62,12 +67,13 @@ TN.Levels.LEVEL_6 = {
   },
 
   /* -----------------------------------------------------------------------
-     SOLID GROUND - three long slabs with a gap and a lava pit between them.
+     SOLID GROUND - three long slabs with a gap and a wide lava pit between
+     them.
      ----------------------------------------------------------------------- */
   solids: [
     { x: 0,   y: 15, w: 38, h: 5 },   /* cols 0-37   the door hall          */
     { x: 41,  y: 15, w: 37, h: 5 },   /* cols 41-77  the second door hall   */
-    { x: 84,  y: 15, w: 36, h: 5 }    /* cols 84-119 the last door hall     */
+    { x: 88,  y: 15, w: 32, h: 5 }    /* cols 88-119 the last door hall     */
   ],
 
   /* No hidden spikes anywhere. That would spoil the theme. */
@@ -77,14 +83,36 @@ TN.Levels.LEVEL_6 = {
   traps: [],
 
   /* -----------------------------------------------------------------------
-     LAVA - the one pit, in the middle, so the run has a rhythm.
+     RANDOM SPIKES
+     These are re-rolled on every run so the player can never memorise the
+     level. Every tile below is flat, open floor, at least three tiles clear
+     of any door, gap, lava pit or the real exit - so whichever ones come up,
+     the corridor is always still finishable.
+     ----------------------------------------------------------------------- */
+  randomSpikes: {
+    count: 10,
+    ty: 14,
+    candidates: [
+      /* First hall (doors at 8, 17, 26, 33). */
+      11, 14, 20, 23, 29,
+      /* Second hall (doors at 46, 55, 64, 72). */
+      49, 51, 60, 61, 67, 68,
+      /* Last hall (doors at 93, 99, 106, 112). */
+      96, 103, 109
+    ]
+  },
+
+  /* -----------------------------------------------------------------------
+     LAVA - a pit ten tiles wide in the middle. Ten tiles is well past the
+     furthest the player can jump at full speed, so there is no running
+     across it: the platform is the only way. Fall in and you burn.
      ----------------------------------------------------------------------- */
   lava: [
-    { tx: 78, ty: 18, tw: 6, th: 2 }
+    { tx: 78, ty: 18, tw: 10, th: 2 }
   ],
 
   movingPlatforms: [
-    { axis: "x", tx: 78, ty: 13, tw: 3, th: 1, toTx: 82, speed: 32, pause: 0.35 }
+    { axis: "x", tx: 78, ty: 13, tw: 3, th: 1, toTx: 85, speed: 34, pause: 0.35 }
   ],
 
   /* -----------------------------------------------------------------------
@@ -132,9 +160,11 @@ TN.Levels.LEVEL_6 = {
     { kind: "fake", tx: 64,  ty: 15 },
     { kind: "fake", tx: 72,  ty: 15 },
 
-    /* Last hall. */
-    { kind: "fake", tx: 88,  ty: 15 },
-    { kind: "fake", tx: 97,  ty: 15 },
+    /* Last hall. Note the first door sits well clear of col 88, which is where
+       the platform sets you down - nobody should be killed by a door the
+       instant they land. */
+    { kind: "fake", tx: 93,  ty: 15 },
+    { kind: "fake", tx: 99,  ty: 15 },
     { kind: "fake", tx: 106, ty: 15 },
     { kind: "fake", tx: 112, ty: 15 },
 

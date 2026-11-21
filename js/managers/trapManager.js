@@ -87,6 +87,35 @@ TN.TrapManager.prototype = {
       pg.permanent = true;
     }
 
+    /* --- RANDOM spikes ---
+       Some levels hand us a list of SAFE floor tiles and ask for a random
+       handful of them to be armed as spikes. We shuffle the list (Fisher-Yates)
+       and take the first few, so the danger sits somewhere different every
+       single run - the player cannot memorise it.
+
+       This can never make a level impossible, because the level author only
+       lists tiles that are flat, solid ground, well clear of doors, gaps and
+       the real exit. Every candidate is exactly as jumpable as every other, so
+       whichever ones come up, the run is still one long (annoying) corridor. */
+    var rnd = L.randomSpikes;
+    if (rnd && rnd.candidates && rnd.candidates.length) {
+      var pool = rnd.candidates.slice();
+      for (var ri = pool.length - 1; ri > 0; ri--) {
+        var rj = Math.floor(Math.random() * (ri + 1));
+        var swap = pool[ri];
+        pool[ri] = pool[rj];
+        pool[rj] = swap;
+      }
+      var want = Math.min(rnd.count || pool.length, pool.length);
+      for (var rk = 0; rk < want; rk++) {
+        var rg = this.addSpikeGroup(pool[rk], rnd.ty || 14, rnd.tw || 1, true);
+        rg.state = "up";
+        rg.t = 1;
+        rg.triggered = true;
+        rg.permanent = true;
+      }
+    }
+
     /* --- crumbling platforms ---
        These are written straight into the tilemap, so the normal collision
        code treats them as solid ground until we delete them. */
@@ -1191,8 +1220,11 @@ TN.TrapManager.prototype = {
       var yy = y + Math.round(e.riseOffset);
       var sprung = e.state === "sprung";
 
-      /* Ground plate / step in front of the door. */
-      R(ctx, x - 2, yy + e.h - 3, e.w + 4, 3, TN.C.rock);
+      /* A thin doorstep that sits ON the floor, UNDER the door. It used to be
+         drawn 3px high across the bottom of the door frame, which made every
+         door look like it had been half-buried in the ground. Now the whole
+         door stands cleanly above the floor line. */
+      R(ctx, x - 2, yy + e.h, e.w + 4, 2, TN.C.rock);
 
       /* Frame. */
       R(ctx, x, yy, e.w, e.h, sprung ? "#4a2b22" : TN.C.woodDark);
