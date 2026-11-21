@@ -114,7 +114,10 @@ TN.Game.prototype = {
     this.completed = false;
     this.completedAt = 0;
     this.paused = false;
-    this.hintTimer = 7;
+    /* The control hint only appears on the first two levels. From level 3 the
+       game stops holding your hand - if you do not know the controls by now,
+       that is on you. */
+    this.hintTimer = this.level.id >= 3 ? 0 : 7;
     this.saveTimer = 0;
     TN.FX.clear();
     this.dialogue.clear();
@@ -125,6 +128,10 @@ TN.Game.prototype = {
 
   /* Pick one of the level's intro lines and show it as a hint. */
   sayIntro: function () {
+    /* Levels 1 and 2 greet you with a cheeky arrival line. From level 3
+       onward there is no warning, no clue and no greeting - you are simply
+       dropped in and expected to cope. */
+    if (this.level.id >= 3) return;
     var lines = this.level.config.introLines;
     if (!lines || lines.length === 0) return;
     this.dialogue.say(TN.utils.pickFresh(lines, []), {
