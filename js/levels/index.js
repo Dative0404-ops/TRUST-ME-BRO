@@ -32,7 +32,7 @@ TN.Levels = TN.Levels || {};
      silently skipped, which is why this build (with only levels 1 and 2)
      still works.
      ----------------------------------------------------------------------- */
-  var MAX_LEVELS = 5;
+  var MAX_LEVELS = 6;
   var list = [];
 
   for (var id = 1; id <= MAX_LEVELS; id++) {

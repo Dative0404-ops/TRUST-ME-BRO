@@ -79,8 +79,12 @@ TN.Levels.LEVEL_4 = {
     { tx: 8,   ty: 14, tw: 3, reveal: 44 },
     { tx: 52,  ty: 14, tw: 3, reveal: 40 },  /* behind the fake wall      */
     { tx: 72,  ty: 14, tw: 3, reveal: 42 },
-    { tx: 100, ty: 14, tw: 3, reveal: 42 },
-    { tx: 130, ty: 14, tw: 3, reveal: 40 }
+    { tx: 100, ty: 14, tw: 3, reveal: 42 }
+    /* NOTE: there used to be a strip at tx 130 here. It sat one tile in front
+       of the fake door at 133, which made the last stretch genuinely unfair:
+       the ONLY way to clear the hidden spikes was to jump, and the jump landed
+       you square on the door. Two lethal traps demanding opposite actions.
+       The mine at 126 still guards this stretch. */
   ],
 
   /* -----------------------------------------------------------------------
@@ -164,6 +168,11 @@ TN.Levels.LEVEL_4 = {
     { tx: 5,   ty: 15 },
     { tx: 45,  ty: 15 },
     { tx: 69,  ty: 15 },
+    /* THE SCAM FLAG. It looks and behaves exactly like every other checkpoint
+       right up until you touch it, at which point spikes come out of the
+       ground. Placed just after the lava pit, where a relieved player is most
+       likely to run straight into it. */
+    { tx: 76,  ty: 15, fake: true },
     { tx: 95,  ty: 15 },
     { tx: 124, ty: 15 }
   ],
@@ -173,12 +182,18 @@ TN.Levels.LEVEL_4 = {
 
   /* -----------------------------------------------------------------------
      EXITS
-     TWO fake doors and one real one. The first fake door sits right in the
-     middle of the level and is the first door you see, so most players will
-     touch it, die, and only then discover the real door exists at all.
+     FOUR doors now, and only one of them is real.
+
+       - two FAKE doors (they stab you),
+       - one WARP door at col 104 that looks EXACTLY like the real exit, glows
+         green and says EXIT, and throws you all the way BACK to level 3, and
+       - the real door at col 138, which only rises once you have already
+         fallen for a lie.
      ----------------------------------------------------------------------- */
   exits: [
+    { kind: "fake", tx: 18,  ty: 15 },
     { kind: "fake", tx: 84,  ty: 15 },
+    { kind: "warp", tx: 113, ty: 15, to: 3 },
     { kind: "fake", tx: 133, ty: 15 },
     { kind: "real", tx: 138, ty: 15, hidden: true }
   ]

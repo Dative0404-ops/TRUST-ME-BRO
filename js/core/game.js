@@ -46,6 +46,12 @@ TN.Game = function (ctx, canvas) {
   /* The clock reading at the moment the level was beaten (see update()). */
   this.completedAt = 0;
 
+  /* Set when the player walks into a WARP door (a door that pretends to be
+     the exit but dumps you into an earlier level). We do not switch levels
+     mid-update; instead we note the target here and let the main update loop
+     perform the swap cleanly once the level has finished ticking. */
+  this.pendingWarp = null;
+
   /* How long the control hint stays on screen at the start. */
   this.hintTimer = 7;
 
@@ -61,12 +67,15 @@ TN.Game = function (ctx, canvas) {
   this.deathManager = new TN.DeathManager(this);
 
   /* -----------------------------------------------------------------------
-     Which level do we start on? The save file remembers how far the player
-     has unlocked, but only levels that actually exist in this build can be
-     loaded. Anything else falls back to level 1.
+     A REFRESH IS A FULL RESET.
+
+     The save file still remembers statistics, coins and checkpoints DURING a
+     session - but the moment the page is reloaded we throw every bit of it
+     away and start again on level 1 with no checkpoint behind us. Refreshing
+     the tab is not an escape route, and neither is closing it.
      ----------------------------------------------------------------------- */
-  this.levelId = this.save.data.unlocked || 1;
-  if (!TN.Levels.exists(this.levelId)) this.levelId = 1;
+  this.save.reset();
+  this.levelId = 1;
 
   this.level = null;
   this.player = null;
@@ -266,6 +275,17 @@ TN.Game.prototype = {
        ------------------------------------------------------------------- */
     this.player.update(dt, this.level.map);
     this.level.update(dt);
+
+    /* Did a WARP door swallow the player this frame? If so, drop them into
+       the level it pointed at and stop here, so nothing else ticks against a
+       level that is about to be thrown away. */
+    if (this.pendingWarp !== null) {
+      var warpTarget = this.pendingWarp;
+      this.pendingWarp = null;
+      this.loadLevel(warpTarget, true);
+      return;
+    }
+
     this.camera.follow(this.player, dt);
 
     /* Total playtime is a statistic, so it goes into the save file too - but

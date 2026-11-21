@@ -11,7 +11,7 @@
    The five animations:
      spike      - impaled, then flung off the spikes, spinning
      crush      - squashed flat into a puddle of dust
-     lava       - burns down into a skeleton
+     lava       - burns down until the skin goes brown... and stays brown
      explosion  - blown apart into a shower of sparks
      void       - plummets forever, spinning and shrinking
 
@@ -93,6 +93,11 @@ TN.DeathManager.prototype = {
     player.alive = false;
     player.vx = 0;
     player.vy = 0;
+
+    /* A lava death leaves a permanent mark on the character: he comes back,
+       every time, with brown skin. Nothing washes it off except reloading the
+       page, because the Game rebuilds the player from scratch on boot. */
+    if (cause === 'lava') player.skinColor = TN.C.skinBrown;
 
     /* Screen shake and the message. */
     this.game.camera.shake(info.shake, 0.35);
@@ -261,7 +266,7 @@ TN.DeathManager.prototype = {
     var rot = 0;
     var kx = 1, ky = 1;
     var pivotBottom = false;
-    var drawSkeleton = false;
+    var skinOverride = null;
 
     if (style === 'spike') {
       /* Spin faster and faster as it flies. */
@@ -277,8 +282,9 @@ TN.DeathManager.prototype = {
       if (progress > 0.75) alpha = (1 - progress) / 0.25;
 
     } else if (style === 'lava') {
-      /* Sink and eventually turn into bones. */
-      if (progress > 0.55) drawSkeleton = true;
+      /* Burns down, and partway through the burn the skin goes brown. The
+         colour is permanent for the rest of the session (see kill()). */
+      if (progress > 0.35) skinOverride = TN.C.skinBrown;
       if (progress > 0.85) alpha = (1 - progress) / 0.15;
 
     } else if (style === 'explosion') {
@@ -294,11 +300,10 @@ TN.DeathManager.prototype = {
     }
 
     if (alpha > 0.02) {
-      if (drawSkeleton) {
-        this.drawSkeleton(ctx, cam, alpha);
-      } else {
-        this.drawSnap(ctx, cam, { alpha: alpha, rot: rot, kx: kx, ky: ky, pivotBottom: pivotBottom });
-      }
+      this.drawSnap(ctx, cam, {
+        alpha: alpha, rot: rot, kx: kx, ky: ky,
+        pivotBottom: pivotBottom, skin: skinOverride
+      });
     }
 
     /* Heat haze / lava glow is drawn on top of the character. */
@@ -339,42 +344,7 @@ TN.DeathManager.prototype = {
       ctx.translate(-s.w / 2, -s.h / 2);
     }
 
-    player.drawCharacter(ctx, 0, 0, s.state, s.animTime, s.facing);
-    ctx.restore();
-  },
-
-  /* The lava death ends with a pile of bones. Twice as funny, half the pixels. */
-  drawSkeleton: function (ctx, cam, alpha) {
-    var R = TN.utils.rect;
-    var s = this.snap;
-    var x = Math.round(s.x - cam.x + cam.offsetX);
-    var y = Math.round(s.y - cam.y + cam.offsetY) + 8;
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-
-    /* Skull */
-    R(ctx, x + 2, y + 0, 8, 5, TN.C.bone);
-    R(ctx, x + 3, y + 5, 6, 1, TN.C.bone);
-    R(ctx, x + 4, y + 2, 2, 2, '#2a2a30');
-    R(ctx, x + 8, y + 2, 2, 2, '#2a2a30');
-    R(ctx, x + 5, y + 6, 1, 1, '#2a2a30');
-    R(ctx, x + 7, y + 6, 1, 1, '#2a2a30');
-
-    /* Ribcage */
-    R(ctx, x + 3, y + 7, 6, 4, TN.C.bone);
-    R(ctx, x + 3, y + 8, 6, 1, '#2a2a30');
-    R(ctx, x + 3, y + 10, 6, 1, '#2a2a30');
-
-    /* Arms */
-    R(ctx, x + 0, y + 7, 2, 4, TN.C.bone);
-    R(ctx, x + 10, y + 7, 2, 4, TN.C.bone);
-
-    /* Pelvis and legs */
-    R(ctx, x + 4, y + 11, 4, 2, TN.C.bone);
-    R(ctx, x + 3, y + 13, 2, 3, TN.C.bone);
-    R(ctx, x + 7, y + 13, 2, 3, TN.C.bone);
-
+    player.drawCharacter(ctx, 0, 0, s.state, s.animTime, s.facing, opts.skin || null);
     ctx.restore();
   },
 

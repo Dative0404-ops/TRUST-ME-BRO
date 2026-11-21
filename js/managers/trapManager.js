@@ -10,9 +10,11 @@
      hiddenSpikes      - spikes that are invisible until you are nearly on
                          top of them, then shoot up out of the floor
      crumble           - platforms that look solid, then fall away underfoot
-     crusher           - a block that shakes, drops, kills, and then politely
-                         winches itself back up (so the level can never become
-                         impossible to finish)
+     crusher           - the SMASHING PLATFORM. A metal ledge hanging from
+                         the ceiling that you can actually stand on - until it
+                         rattles and slams down on whatever is beneath it,
+                         then winches itself back up (so the level can never
+                         become impossible to finish)
      gem               - a shiny "upgrade" that triggers a spike eruption
      exits             - the fake exit door, and the real one it is hiding
      switch            - a hidden lever; press every one in the level and the
@@ -113,6 +115,12 @@ TN.TrapManager.prototype = {
       var t = traps[i];
 
       if (t.type === "crusher") {
+        /* THE SMASHING PLATFORM.
+           It hangs from the ceiling on a chain and is a real, solid ledge -
+           the player can stand on top of it. But step on it (or run under
+           the trigger line) and it rattles, then slams all the way down,
+           then winches itself back up to its home height. Because it always
+           returns home it can never permanently block the corridor. */
         this.crushers.push({
           x: t.tx * TN.TILE,
           y: t.ty * TN.TILE,
@@ -124,6 +132,9 @@ TN.TrapManager.prototype = {
           state: "idle" /* idle | shaking | falling | landed | retracting */,
           t: 0,
           vy: 0,
+          /* How far the slab moved this frame. Used to carry a rider. */
+          dx: 0,
+          dy: 0,
         });
       } else if (t.type === "gem") {
         /* The gem creates its own "eruption" spike group. Marked manual so it
@@ -198,18 +209,27 @@ TN.TrapManager.prototype = {
     for (i = 0; i < exits.length; i++) {
       var e = exits[i];
       this.exits.push({
-        kind: e.kind /* 'fake' or 'real' */,
+        kind: e.kind /* 'fake' | 'real' | 'warp' */,
         x: e.tx * TN.TILE + 1,
         y: e.ty * TN.TILE - 30,
         w: 14,
         h: 30,
         tx: e.tx,
         ty: e.ty,
-        /* Fake doors start closed; real doors start invisible. */
-        state: e.kind === "fake" ? "idle" : "hidden",
+        /* Fake doors start closed; real doors start invisible; a WARP door and
+           a SPIKE EXIT are open from the start, because the whole point of both
+           is that the player can see and reach them immediately. */
+        state:
+          e.kind === "fake"
+            ? "idle"
+            : e.kind === "warp" || e.kind === "spikeExit"
+              ? "open"
+              : "hidden",
         t: 0,
         /* Used by the real door's rise-out-of-the-ground animation. */
         riseOffset: 30,
+        /* The level a warp door dumps you into. */
+        to: e.to || null,
       });
     }
 
@@ -477,19 +497,38 @@ TN.TrapManager.prototype = {
     }
   },
 
-  /* ---- crushers --------------------------------------------------------- */
+  /* ---- crushers (the smashing platform) --------------------------------- */
+  /* Is the player standing on top of this slab right now? A small tolerance
+     band is used because the player's feet are snapped onto the surface and we
+     do not want the tiniest rounding difference to break the "riding" state. */
+  playerOnTop: function (c, player) {
+    var feet = player.y + player.h;
+    return (
+      feet >= c.y - 4 &&
+      feet <= c.y + 8 &&
+      player.x + player.w > c.x + 1 &&
+      player.x < c.x + c.w - 1 &&
+      player.vy >= -1 /* not rocketing up through it */
+    );
+  },
+
   updateCrushers: function (dt, player) {
     for (var i = 0; i < this.crushers.length; i++) {
       var c = this.crushers[i];
+      var prevY = c.y;
+
+      /* Work out whether the player is riding the ledge BEFORE it moves. If we
+         waited until afterwards, a fast slam would out-run the player and they
+         would be counted as being crushed instead of carried. */
+      var riding = player.alive && this.playerOnTop(c, player);
 
       if (c.state === "idle") {
-        /* Trigger when the player walks in from the left and reaches the
-           trigger line. Approaching from the right does nothing, so respawning
-           past the crusher is safe. */
+        /* Two ways to wake it up: run under the trigger line, or climb up and
+           actually stand on the ledge. Approaching from the right does nothing,
+           so respawning past the crusher is safe. */
         if (
           player.alive &&
-          player.x < c.x &&
-          player.x + player.w > c.triggerX
+          (riding || (player.x < c.x && player.x + player.w > c.triggerX))
         ) {
           c.state = "shaking";
           c.t = 0;
@@ -559,10 +598,31 @@ TN.TrapManager.prototype = {
         }
       }
 
-      /* Touching a crusher is always fatal unless it is parked back home. */
-      if (c.state !== "idle" && TN.utils.aabb(player, c)) {
-        this.game.deathManager.kill("crush");
-        return;
+      /* How far did the slab move this frame? A rider is carried by exactly
+         this much, so standing on the ledge during a slam feels solid instead
+         of the floor dropping out from under you. */
+      c.dy = c.y - prevY;
+
+      if (!player.alive) continue;
+
+      if (riding) {
+        /* On top of it: ride along. The rider is safe no matter how hard the
+           slab comes down - only things UNDERNEATH it get flattened. */
+        player.y = c.y - player.h;
+        if (c.state !== "idle") player.vy = 0;
+        player.onGround = true;
+        continue;
+      }
+
+      /* Not riding but still inside the slab. A parked (idle) ledge is just
+         furniture, so push the player out of it. Anything else is a smash. */
+      if (TN.utils.aabb(player, c)) {
+        if (c.state === "idle") {
+          TN.Platform.prototype.resolve.call(c, player);
+        } else {
+          this.game.deathManager.kill("crush");
+          return;
+        }
       }
     }
   },
@@ -711,6 +771,26 @@ TN.TrapManager.prototype = {
           return;
         }
       } else if (e.kind === "real" && e.state === "open") {
+        if (TN.utils.aabb(player, e)) {
+          this.game.onLevelComplete();
+          return;
+        }
+      } else if (e.kind === "warp" && e.state === "open") {
+        /* The cruellest door of all: it is green, it glows, it says EXIT, and
+           it sends you backwards. The Game performs the swap on the next tick
+           (see pendingWarp) so we never yank the level out from under the
+           update that is already running. */
+        if (TN.utils.aabb(player, e)) {
+          this.game.registerFakeExit();
+          this.game.camera.shake(10, 0.4);
+          this.game.dialogue.sayFrom("warp", { style: "bad", priority: true });
+          this.game.pendingWarp = e.to;
+          return;
+        }
+      } else if (e.kind === "spikeExit" && e.state === "open") {
+        /* THE FINAL JOKE. This "door" is drawn as a small, obvious clump of
+           spikes - the exact thing the whole game taught you to avoid - but it
+           is the only way out. Step into the spikes and the level ends. */
         if (TN.utils.aabb(player, e)) {
           this.game.onLevelComplete();
           return;
@@ -921,6 +1001,20 @@ TN.TrapManager.prototype = {
 
       var R = TN.utils.rect;
 
+      /* The winch chain. It is anchored at the slab's home height, so while the
+         slab is hanging still the chain has zero length and is invisible, and
+         it stretches out as the slab slams down and winches back up. */
+      var homeY = Math.round(c.homeY - cam.y + cam.offsetY);
+      if (y > homeY + 1) {
+        var cx = x + Math.floor(c.w / 2);
+        R(ctx, cx - 1, homeY, 2, y - homeY, "#6b7186");
+        for (var lk = homeY + 3; lk < y; lk += 5) {
+          R(ctx, cx - 2, lk, 4, 2, "#565c70");
+        }
+        /* The winch drum bolted to the ceiling. */
+        R(ctx, cx - 5, homeY - 3, 10, 3, "#3f4456");
+      }
+
       /* Main body. */
       R(ctx, x, y, c.w, c.h, TN.C.crusher);
       R(ctx, x, y, c.w, 2, "#98a2bc");
@@ -1070,6 +1164,18 @@ TN.TrapManager.prototype = {
       var x = Math.round(e.x - cam.x + cam.offsetX);
       var y = Math.round(e.y - cam.y + cam.offsetY);
       if (x + e.w < -30 || x > TN.VIEW_W + 30) continue;
+
+      /* A SPIKE EXIT pretends to be a hazard. It draws as a short, obvious row
+         of spikes sitting on the floor - no door, no frame, no EXIT sign - so
+         a player who has learned to avoid spikes walks straight past the only
+         way to finish the level. */
+      if (e.kind === "spikeExit") {
+        var baseY = Math.round(e.y + e.h - cam.y + cam.offsetY);
+        this.drawSpikeRow(ctx, x, baseY - TN.TILE, e.w, TN.TILE, 1);
+        /* A small dark scuff so it reads as "a pit of spikes", not just a row. */
+        TN.utils.rect(ctx, x - 2, baseY - 1, e.w + 4, 2, TN.C.spikeDark);
+        continue;
+      }
 
       /* The real door slides up out of the ground, so clip it to only draw
          the part that has "arrived". */

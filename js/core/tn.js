@@ -62,6 +62,9 @@ TN.C = {
 
   /* Player character */
   skin:      '#f2c49b',
+  /* What the player's skin becomes after a lava burn. It stays that way for
+     the rest of the session. */
+  skinBrown: '#8a5a3a',
   hair:      '#3a2a2a',
   shirt:     '#e0574f',
   shirtDark: '#a83c37',

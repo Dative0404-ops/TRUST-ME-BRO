@@ -79,8 +79,11 @@ TN.Levels.LEVEL_5 = {
     { tx: 50,  ty: 14, tw: 3, reveal: 40 },
     { tx: 70,  ty: 14, tw: 3, reveal: 40 },
     { tx: 96,  ty: 14, tw: 3, reveal: 40 },
-    { tx: 124, ty: 14, tw: 3, reveal: 38 },
-    { tx: 150, ty: 14, tw: 3, reveal: 38 }
+    { tx: 124, ty: 14, tw: 3, reveal: 38 }
+    /* NOTE: a strip used to sit at tx 150, directly UNDER the fake door at
+       tx 151 - the spike and the door occupied the same tiles. Dodging one
+       meant touching the other. It has been removed; the mine at 148 still
+       keeps this final stretch honest. */
   ],
 
   /* -----------------------------------------------------------------------
@@ -177,6 +180,9 @@ TN.Levels.LEVEL_5 = {
     { tx: 40,  ty: 15 },
     { tx: 66,  ty: 15 },
     { tx: 93,  ty: 15 },
+    /* SCAM FLAG. The first thing you run into after surviving the lava pit,
+       so it catches you while you are feeling good about yourself. */
+    { tx: 119, ty: 15, fake: true },
     { tx: 121, ty: 15 },
     { tx: 146, ty: 15 }
   ],

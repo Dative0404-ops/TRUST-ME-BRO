@@ -60,11 +60,7 @@ TN.DialogueManager.MESSAGES = {
   ],
 
   lava: [
-    'Now you are a skeleton. Cool.',
-    'Crispy.',
-    'You have been promoted to calcium.',
-    'Well done. Very well done.',
-    'That was a warm welcome.'
+    'NICE SKIN COLOR, JUST LIKE RAF.'
   ],
 
   explosion: [
@@ -112,6 +108,23 @@ TN.DialogueManager.MESSAGES = {
     'Progress stored. Confidence unearned.',
     'A flag. Surely this one is safe.',
     'Noted. Try not to waste it.'
+  ],
+
+  fakeCheckpoint: [
+    'That flag was a lie too.',
+    'A fake checkpoint. Of course it was.',
+    'Checkpoint saved. Just kidding.',
+    'The flag stabbed you. Very on brand.',
+    'That was not mercy. That was bait.'
+  ],
+
+  /* A door that looked like the exit but threw you backwards a whole level. */
+  warp: [
+    'Wrong way. Thanks for playing.',
+    'That door leads backwards. Obviously.',
+    'You have been re-routed. How unfortunate.',
+    'Not the exit. Not even close.',
+    'Progress is a social construct anyway.'
   ],
 
   levelStart: [

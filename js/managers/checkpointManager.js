@@ -12,6 +12,18 @@
 
    After that, dying puts the player back here instead of at the start.
 
+   AND THEN THERE ARE THE FAKE ONES.
+
+   From level 4 onward a flag can be marked with "fake: true" in the level
+   data. While it is armed a fake flag is drawn IDENTICALLY to a real one -
+   same pole, same colours, same little flag - so the player has no way to
+   tell them apart. Walking into one springs a spike trap and kills the
+   player. It saves nothing and heals nothing.
+
+   Once a fake flag has gone off it collapses and stays harmless for good, so
+   it can never trap a player in a death loop: respawning beside it and
+   walking forward again is always safe.
+
    Coordinate convention used all over this project:
      tx, ty are TILE coordinates and "ty" is the GROUND row.
      A checkpoint at (22, 15) therefore stands ON row 15, its flag box
@@ -53,7 +65,11 @@ TN.CheckpointManager = function (game, level) {
       /* Have we ever touched it this run? (used for the little hit animation) */
       touched: false,
       /* 0..1 animation used for the confetti puff. */
-      popT: 0
+      popT: 0,
+      /* A SCAM flag. Looks real while armed, springs spikes when touched. */
+      fake: !!c.fake,
+      /* Set the moment a fake flag bites. It stays harmless after that. */
+      sprung: false
     });
   }
 
@@ -94,9 +110,16 @@ TN.CheckpointManager.prototype = {
       /* Grow the confetti animation, if one is playing. */
       if (cp.popT > 0) cp.popT = Math.min(1, cp.popT + dt * 2.2);
 
+      /* A flag that has already bitten is inert from then on. */
+      if (cp.sprung) continue;
+
       /* Only the plain rectangle test matters here. */
       if (!cp.active && TN.utils.aabb(player, cp)) {
-        this.activate(cp);
+        if (cp.fake) {
+          this.springScam(cp);
+        } else {
+          this.activate(cp);
+        }
       }
     }
   },
@@ -131,14 +154,58 @@ TN.CheckpointManager.prototype = {
     this.game.dialogue.sayFrom('checkpoint', { style: 'good' });
   },
 
+  /* -----------------------------------------------------------------------
+     The scam flag goes off.
+
+     It does NOT heal, does NOT save and does NOT turn green - it just opens
+     the floor. This is the whole joke: a checkpoint is the one thing in the
+     game the player is allowed to relax about, so it is the perfect place to
+     put a trap.
+
+     The flag is marked "sprung" first, so even if the player respawns right
+     next to it they can walk past safely.
+     ----------------------------------------------------------------------- */
+  springScam: function (cp) {
+    cp.sprung = true;
+    cp.touched = true;
+    cp.popT = 0.001;
+    this.game.registerTrap();
+
+    /* Spikes slam out of the ground under the pole. The Trap Manager owns
+       spike groups, so we borrow its helpers rather than making our own. */
+    var traps = this.game.level && this.game.level.traps;
+    if (traps) {
+      var g = traps.addSpikeGroup(cp.tx - 1, cp.ty - 1, 3, true);
+      traps.revealSpikeGroup(g);
+    }
+
+    /* A cloud of rust instead of the usual cheerful confetti. */
+    TN.FX.burst(cp.x + TN.TILE / 2, cp.y + 10, 20, {
+      colors: [TN.C.spike, TN.C.spikeDark, '#ffffff', '#8a3030'],
+      speedMin: 40, speedMax: 170, gravity: 500,
+      lifeMin: 0.25, lifeMax: 0.7, size: 2
+    });
+
+    this.game.camera.shake(11, 0.4);
+
+    /* Kill first, THEN speak. kill() picks its own "spike" line, so saying our
+       line afterwards is what makes sure the player actually reads the
+       fake-checkpoint joke instead of the generic spike one. */
+    this.game.deathManager.kill('spike');
+    this.game.dialogue.sayFrom('fakeCheckpoint', { style: 'bad', priority: true });
+  },
+
   /* Bring every flag back to its "not yet reached" visual state. Used when
      the level is restarted with R. The current spawn is left alone because
      the player is standing at it. */
   resetVisuals: function () {
     var savedId = this.game.save.getCheckpointId(this.level.id);
     for (var i = 0; i < this.checkpoints.length; i++) {
-      this.checkpoints[i].active = (i === savedId);
-      this.checkpoints[i].popT = 0;
+      var cp = this.checkpoints[i];
+      /* A scam flag is never "the live checkpoint", and a flag that has
+         already sprung stays sprung (and therefore harmless) across respawns. */
+      cp.active = (!cp.fake && i === savedId);
+      cp.popT = 0;
     }
   },
 
@@ -156,6 +223,17 @@ TN.CheckpointManager.prototype = {
       var x = Math.round(sx + cam.offsetX);
       var y = Math.round(cp.y - cam.y + cam.offsetY);
       var R = TN.utils.rect;
+
+      /* --- a flag that has already bitten: snapped pole, flag in the dirt.
+             It must look obviously dead, because it is now harmless and the
+             player is expected to walk straight over it. --- */
+      if (cp.sprung) {
+        R(ctx, x, y + 30, 16, 2, TN.C.rock);
+        R(ctx, x + 1, y + 24, 3, 7, '#5a5f70');
+        R(ctx, x + 5, y + 26, 9, 4, TN.C.flagOff);
+        R(ctx, x + 5, y + 29, 6, 2, TN.C.flagOff);
+        continue;
+      }
 
       /* --- base plate --- */
       R(ctx, x, y + 30, 16, 2, TN.C.rock);

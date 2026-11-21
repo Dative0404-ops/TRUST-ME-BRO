@@ -10,6 +10,11 @@
      - per level: the last checkpoint, which coins were already taken, and
        whether the level has been completed
 
+   Note that this is NOT "progress that survives a refresh". The Game calls
+   reset() the moment it starts, so reloading the page always throws the
+   player back to level 1. Everything here only has to survive for one
+   session, and only so the statistics and checkpoints work within it.
+
    IMPORTANT: everything is wrapped in try/catch. Some browsers block
    localStorage in private mode, and older ones block it on file:// URLs.
    If storage is unavailable the game must still run, it just forgets things

@@ -49,6 +49,13 @@ TN.Player = function (x, y) {
   this.wasOnGround = false;
   this.landedThisFrame = false;
 
+  /* Once the player has been burned by lava his skin stays brown for the rest
+     of the session. It is deliberately NOT cleared by reset(), so dying and
+     respawning does not wash the colour off. The only thing that clears it is
+     reloading the page (the Game wipes the save on boot and the player is
+     rebuilt from scratch). Null means "use the normal palette skin". */
+  this.skinColor = null;
+
   /* Flags for whatever we bumped into this step (set by the collision code). */
   this.collided = { left: false, right: false, top: false, bottom: false };
 
@@ -282,14 +289,18 @@ TN.Player.prototype = {
      Kept separate from draw() so the Death Manager can reuse it (for example
      to draw a spinning, falling version of the same character).
 
-     x, y     : top-left corner on screen
-     state    : idle | run | jump | fall | hurt
-     animTime : seconds, used to pick the walk frame
-     facing   : 1 = right, -1 = left
+     x, y        : top-left corner on screen
+     state       : idle | run | jump | fall | hurt
+     animTime    : seconds, used to pick the walk frame
+     facing      : 1 = right, -1 = left
+     skinOverride: optional colour to use instead of this.skinColor / the
+                   palette skin (the Death Manager uses it to show the player
+                   slowly turning brown as he burns).
      --------------------------------------------------------------------- */
-  drawCharacter: function (ctx, x, y, state, animTime, facing) {
+  drawCharacter: function (ctx, x, y, state, animTime, facing, skinOverride) {
     var R = TN.utils.rect;
-    var skin = TN.C.skin, hair = TN.C.hair, shirt = TN.C.shirt;
+    var skin = skinOverride || this.skinColor || TN.C.skin;
+    var hair = TN.C.hair, shirt = TN.C.shirt;
     var shirtDark = TN.C.shirtDark, pants = TN.C.pants, shoe = TN.C.shoe;
 
     /* Whole-body offsets used to bring the poses to life. */
