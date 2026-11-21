@@ -152,8 +152,26 @@ TN.TrapManager.prototype = {
         /* A small drum sitting on the floor. Walk within "radius" pixels of
            its centre and a short fuse starts burning; a moment later it goes
            off. The trigger circle is deliberately WIDER than the blast, so a
-           player who spots it and stops in time is safe - the trap punishes
-           running blind, not seeing. */
+           player who spots it and stops in time is safe - and a player who
+           just keeps sprinting can outrun the blast.
+
+           FUSE SAFETY CLAMP
+           The level data chooses radius and fuse, but a fuse can easily be
+           set short enough to make the mine IMPOSSIBLE to survive. Work it
+           out: the fuse only lights once the player's centre is (radius +
+           half the player width) from the middle of the drum, and to stay
+           clear the player's near edge must then travel all the way past the
+           far side of the 40px blast box. That is a sprint of (radius + 32)
+           pixels, so the fuse has to last at least
+
+               (radius + 32) / RUN_SPEED   seconds
+
+           or even a flawless full-speed run ends inside the explosion. We
+           clamp to that with a small margin, so a player who is still picking
+           up speed also gets through. Result: every mine in the game is
+           beatable by running, and easier still by stopping. */
+        var minFuse = (((t.radius || 40) + 32) / TN.Physics.RUN_SPEED) * 1.15;
+
         this.mines.push({
           tx: t.tx,
           ty: t.ty,
@@ -165,7 +183,7 @@ TN.TrapManager.prototype = {
           /* How close the player must get for the fuse to light. */
           radius: t.radius || 40,
           /* How long the fuse burns before it detonates. */
-          fuse: t.fuse || 0.35,
+          fuse: Math.max(t.fuse || 0.35, minFuse),
           /* How long it stays blown up before quietly re-arming. */
           cooldown: 0.9,
           state: "idle" /* idle | armed | boom */,

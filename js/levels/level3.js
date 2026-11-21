@@ -84,7 +84,6 @@ TN.Levels.LEVEL_3 = {
      ----------------------------------------------------------------------- */
   hiddenSpikes: [
     { tx: 8,   ty: 14, tw: 3, reveal: 46 },   /* the unmarked first betrayal */
-    { tx: 50,  ty: 14, tw: 3, reveal: 42 },   /* inside the tunnel           */
     { tx: 70,  ty: 14, tw: 3, reveal: 44 },   /* middle of the gauntlet      */
     { tx: 100, ty: 14, tw: 3, reveal: 44 }    /* one last reminder           */
   ],
