@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TRUST NOTHING - 2D Pixel-Art Troll Platformer</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- The whole game is drawn onto this one canvas. It always renders at
+       480x270 internally and is then scaled up by a whole number, which is
+       what keeps the pixel art crisp instead of blurry. -->
+  <div id="stage">
+    <canvas id="game" width="480" height="270"></canvas>
+  </div>
+
+  <!-- Every script is a plain classic script (no build step, no bundler, no
+       server needed). Order matters: core first, then managers, then levels,
+       then the game loop, then the bootstrap. -->
+  <script src="js/core/tn.js"></script>
+  <script src="js/core/font.js"></script>
+  <script src="js/core/fx.js"></script>
+  <script src="js/core/input.js"></script>
+  <script src="js/core/tilemap.js"></script>
+  <script src="js/core/collision.js"></script>
+  <script src="js/core/physics.js"></script>
+  <script src="js/core/platform.js"></script>
+  <script src="js/core/camera.js"></script>
+  <script src="js/core/player.js"></script>
+
+  <script src="js/managers/saveManager.js"></script>
+  <script src="js/managers/dialogueManager.js"></script>
+  <script src="js/managers/deathManager.js"></script>
+  <script src="js/managers/checkpointManager.js"></script>
+  <script src="js/managers/trapManager.js"></script>
+  <script src="js/managers/levelManager.js"></script>
+
+  <script src="js/levels/level1.js"></script>
+  <script src="js/levels/level2.js"></script>
+  <script src="js/levels/index.js"></script>
+
+  <script src="js/core/game.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>
